@@ -1,8 +1,5 @@
-__pycache__/app.cpython-39.pyc
-__pycache__/data.cpython-39.pyc
+__pycache__/
+_cache/
 data/2020-2021-cases.csv
 data/2021-2022-cases.csv
 data/directory.csv
-_cache/82c6554253c17097a74289b4cad69a0b
-_cache/348b9823aad03468eba39633a3195165
-_cache/2029240f6d1128be89ddc32729463129

@@ -22,6 +22,7 @@ cache = Cache(app.server, config={
 
 navbar = dbc.NavbarSimple(
     children=[
+        dbc.NavItem(dbc.NavLink("About", href="/about")),
         dbc.NavItem(dbc.NavLink("All", href="/all")),
         dbc.NavItem(dbc.NavLink("By School", href="/school")),
         dbc.NavItem(dbc.NavLink("Map", href="/map")),
@@ -67,6 +68,16 @@ def showMap(dataset):
     plots = Plots(Data(dataset))
     return [
         dcc.Graph(id="map", figure=plots.plotMap(), style={'height': '100vh'})
+    ]
+
+
+def showAbout():
+    with open("ABOUT.md","r") as f:
+        about = f.read()
+    return [
+        dbc.Row([
+            dbc.Col([dcc.Markdown(about)],width={"size": 10, "offset": 1},)
+        ], align='center')
     ]
 
 
@@ -145,6 +156,8 @@ def display_router(data, url):
         return year, showMap(dataset)
     if url is not None and url == "/school":
         return year, showSchools(dataset)
+    if url is not None and url == "/about":
+        return year, showAbout()
     else:
         return year, showGraphs(dataset)
 
