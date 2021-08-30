@@ -98,6 +98,9 @@ class Plots:
         df = df.dropna()
         all = df.groupby(by=['date', 'level'])[
             'count'].sum().reset_index()
+        all['level'] = pd.Categorical(
+            all['level'], ['Elementary', 'Middle', 'High'])
+        all = all.sort_values(by='level')
         fig = px.bar(all, x='date', y='count', color='level',
                      title="Confirmed cases by school level")
         fig.update_layout(legend=self.legend, xaxis_title="", yaxis_title="")
@@ -117,11 +120,15 @@ class Plots:
 
     def plotBox(self):
         all = self.df.groupby(by=['level', 'location'])[
-            'count'].sum().reset_index()
+            'count'].sum().reset_index().copy()
+        # TODO why can't I do this before grouping?
+        all['level'] = pd.Categorical(
+            all['level'], ['Elementary', 'Middle', 'High'])
+        all = all.sort_values(by='level')
 
         fig = px.box(all, x='count', y='level', color='level', points='all',
                      hover_name='location', title="Distribution of confirmed cases by school level")
-        fig.update_layout(legend=self.legend)
+        fig.update_layout(legend=self.legend, xaxis_title="", yaxis_title="")
         return fig
 
     def plotMap(self, filter=[]):
