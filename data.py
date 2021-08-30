@@ -3,6 +3,7 @@ from datetime import datetime
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
+from plotly.subplots import make_subplots
 
 d20212022 = {
     'file': 'data/2021-2022-cases.csv',
@@ -27,6 +28,7 @@ name_map = {
     'WINTER PARK 9TH GRADE CENTER': 'WINTER PARK HIGH 9TH GRADE CENTER'
 }
 
+
 class Data:
     def __init__(self, dataset):
         self.dataset = dataset
@@ -36,9 +38,11 @@ class Data:
         self.df = df
 
         dir_df = pd.read_csv(dataset['directory'])
-        self.df['location_map'] = self.df.location.apply(lambda x: self.mapDirNames(x))
-        self.df = self.df.merge(dir_df, how='left', left_on='location_map',right_on='location',suffixes=(None,"_"))
-        self.df.drop(columns=["location_","location_map"],inplace=True)
+        self.df['location_map'] = self.df.location.apply(
+            lambda x: self.mapDirNames(x))
+        self.df = self.df.merge(
+            dir_df, how='left', left_on='location_map', right_on='location', suffixes=(None, "_"))
+        self.df.drop(columns=["location_", "location_map"], inplace=True)
 
     def getLatestDate(self):
         return self.df.date.max().date()
@@ -58,32 +62,34 @@ class Data:
 
         return name.strip()
 
+
 class Plots:
-    legend=dict(
+    legend = dict(
         orientation="h",
         yanchor="bottom",
         y=1.02,
         xanchor="right",
         x=1
     )
-    def __init__(self,data):
+
+    def __init__(self, data):
         self.data = data
         self.df = self.getMapData()
-    
+
     def getMapData(self):
         df = self.data.df
         df = df[df.date >= datetime(2000, 1, 1)]
         df = df.dropna()
         return df
 
-
     def plotByType(self):
         df = self.df
         df = df[df.date >= datetime(2000, 1, 1)]
         df = df.dropna()
         all = df.groupby(by=['date', 'type'])['count'].sum().reset_index()
-        fig = px.bar(all, x='date', y='count', color='type', title="Confirmed cases by type")
-        fig.update_layout(legend=self.legend,xaxis_title="",yaxis_title="")
+        fig = px.bar(all, x='date', y='count', color='type',
+                     title="Confirmed cases by type")
+        fig.update_layout(legend=self.legend, xaxis_title="", yaxis_title="")
         return fig
 
     def plotByLevel(self):
@@ -92,29 +98,33 @@ class Plots:
         df = df.dropna()
         all = df.groupby(by=['date', 'level'])[
             'count'].sum().reset_index()
-        fig = px.bar(all,x='date',y='count',color='level',title="Confirmed cases by school level")
-        fig.update_layout(legend=self.legend,xaxis_title="",yaxis_title="")
+        fig = px.bar(all, x='date', y='count', color='level',
+                     title="Confirmed cases by school level")
+        fig.update_layout(legend=self.legend, xaxis_title="", yaxis_title="")
         return fig
 
-    def plotBySchool(self,schools=[]):
+    def plotBySchool(self, schools=[]):
         df = self.df
         df = df[df.date >= datetime(2000, 1, 1)]
         df = df.dropna()
         if len(schools) > 0:
-            df=df[df.location.isin(schools)]
-        
-        fig = px.bar(df,x='date',y='count',color='location',title="Confirmed cases by school")
-        fig.update_layout(legend=self.legend,xaxis_title="",yaxis_title="")
+            df = df[df.location.isin(schools)]
+
+        fig = px.bar(df, x='date', y='count', color='location',
+                     title="Confirmed cases by school")
+        fig.update_layout(legend=self.legend, xaxis_title="", yaxis_title="")
         return fig
 
     def plotBox(self):
-        all = self.df.groupby(by=['level','location'])['count'].sum().reset_index()
+        all = self.df.groupby(by=['level', 'location'])[
+            'count'].sum().reset_index()
 
-        fig = px.box(all, x='count', y='level', color='level', points='all', hover_name='location',title="Distribution of confirmed cases by school level")
+        fig = px.box(all, x='count', y='level', color='level', points='all',
+                     hover_name='location', title="Distribution of confirmed cases by school level")
         fig.update_layout(legend=self.legend)
         return fig
 
-    def plotMap(self,filter=[]):
+    def plotMap(self, filter=[]):
         df = self.df
         df_bycount = df.groupby(
             ['location', 'level', 'lat', 'long']).sum(['count'])
@@ -125,12 +135,45 @@ class Plots:
                                 color_discrete_sequence=["red", "yellow", "blue"], zoom=9, color='level', size='count', size_max=50, opacity=.5, hover_name='location', hover_data=['level', 'count'])
 
         fig.update_layout(mapbox_style="open-street-map")
-        fig.update_layout(autosize=True,legend=self.legend,xaxis_title="",yaxis_title="")
+        fig.update_layout(autosize=True, legend=self.legend,
+                          xaxis_title="", yaxis_title="")
         return fig
 
-    
+    def plotDistributionByLevel(self, level):
+        df = self.df
+        df = df[['level', 'location', 'count']].groupby(
+            ['level', 'location']).sum().reset_index()
+        df = df[df.level == level]
+
+        fig = make_subplots(rows=4, cols=1, shared_xaxes=True, shared_yaxes=False,
+                            specs=[[{}], [{"rowspan": 3}], [None], [None]],
+                            )
+        fig.add_box(x=df['count'], name=level, row=1, col=1,
+                    marker={'color': self.getColorForLevel(level)})
+
+        fig.add_bar(x=df['count'], y=df['location'], row=2, col=1, name="Schools", marker={
+                    'color': self.getColorForLevel(level)})
+        fig.update_yaxes(visible=False)
+        fig.update_xaxes(visible=True, row=1, col=1,
+                         showticklabels=True, title="")
+        fig.update_xaxes(visible=True, row=2, col=1, showticklabels=True,
+                         title_text="Total # of confirmed cases by school")
+        fig.update_layout(
+            title_text="%s Schools Confirmed Cases Distribution" % (level))
+
+        return fig
+
+    def getColorForLevel(self, level):
+        if level == 'Elementary':
+            return px.colors.qualitative.Plotly[0]
+        if level == 'Middle':
+            return px.colors.qualitative.Plotly[1]
+        if level == 'High':
+            return px.colors.qualitative.Plotly[2]
+        return "black"
+
+
 if __name__ == "__main__":
     d = Data(d20212022)
     locs = d.getLocationsList()
     pass
-    

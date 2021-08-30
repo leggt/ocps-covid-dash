@@ -17,7 +17,9 @@ app = dash.Dash(external_stylesheets=[dbc.themes.BOOTSTRAP],
 cache = Cache(app.server, config={
     # try 'filesystem' if you don't want to setup redis
     'CACHE_TYPE': 'filesystem',
-    'CACHE_DIR' :'_cache'
+    'CACHE_DIR': '_cache',
+    # Cache is valid for a day. (Cache is cleared when we get new data in the nightly scripts)
+    'CACHE_DEFAULT_TIMEOUT': 60*60*24
 })
 
 navbar = dbc.NavbarSimple(
@@ -44,7 +46,7 @@ navbar = dbc.NavbarSimple(
 app.title = "(Unofficial) OCPS Covid Dashboard"
 app.layout = html.Div(
     [
-        dcc.Store(id="year_store",data={'year':'2021'}),
+        dcc.Store(id="year_store", data={'year': '2021'}),
         dcc.Location(id='url', refresh=False),
         navbar,
         html.Div(id="main_content", children=[])
@@ -52,18 +54,23 @@ app.layout = html.Div(
 )
 
 
-@cache.memoize(timeout=600)  # in seconds
+@cache.memoize()  # in seconds
 def showGraphs(dataset):
     plots = Plots(Data(dataset))
 
-    return [
+    children = [
         dcc.Graph(id="type_count", figure=plots.plotByType()),
         dcc.Graph(id="level_count", figure=plots.plotByLevel()),
         dcc.Graph(id="box_plot", figure=plots.plotBox()),
     ]
 
+    for level in ['Elementary', 'Middle', 'High']:
+        children.append(dcc.Graph(figure=plots.plotDistributionByLevel(level)))
 
-@cache.memoize(timeout=600)  # in seconds
+    return children
+
+
+@cache.memoize()  # in seconds
 def showMap(dataset):
     plots = Plots(Data(dataset))
     return [
@@ -72,11 +79,11 @@ def showMap(dataset):
 
 
 def showAbout():
-    with open("ABOUT.md","r") as f:
+    with open("ABOUT.md", "r") as f:
         about = f.read()
     return [
         dbc.Row([
-            dbc.Col([dcc.Markdown(about)],width={"size": 10, "offset": 1},)
+            dbc.Col([dcc.Markdown(about)], width={"size": 10, "offset": 1},)
         ], align='center')
     ]
 
@@ -105,7 +112,7 @@ def showSchools(dataset):
     ])
 
 
-@cache.memoize(timeout=600)  # in seconds
+@cache.memoize()  # in seconds
 def updateSchools(dataset, schools=[]):
     if len(schools) > 0:
         plots = Plots(Data(dataset))
@@ -117,8 +124,8 @@ def updateSchools(dataset, schools=[]):
             [
                 html.H1("Filter by school", className="display-3"),
                 html.P("Select a list of schools from the filter above to see some plots focusing on just those schools",
-                    className="lead",
-                ),
+                       className="lead",
+                       ),
             ]
         )]
 
@@ -177,6 +184,7 @@ def getDataset(data):
 def updateSchoolsFilter(schools, year):
     dataset = getDataset(year)
     return updateSchools(dataset, schools)
+
 
 server = app.server
 
