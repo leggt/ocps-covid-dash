@@ -8,25 +8,59 @@ from plotly.subplots import make_subplots
 d20212022 = {
     'file': 'data/2021-2022-cases.csv',
     'directory': 'data/directory.csv',
+    'demographics': 'data/demographics.csv',
     'cutoff': datetime(2021, 8, 2)
 }
 d20202021 = {
     'file': 'data/2020-2021-cases.csv',
     'directory': 'data/directory.csv',
+    'demographics': 'data/demographics.csv',
     'start_date': datetime(2021, 8, 1),
     'cutoff': datetime(2020, 8, 21)
 }
 
-name_map = {
-    'LAKE COMO K-8': 'LAKE COMO SCHOOL',
-    'AUDUBON PARK K-8': 'AUDUBON PARK SCHOOL',
-    'APOPKA MEMORIAL MIDDLE': 'MEMORIAL MIDDLE',
-    'WHEATLEY ELEMENTARY': 'PHILLIS WHEATLEY ELEMENTARY',
-    'DR. PHILLIPS HIGH': 'DR PHILLIPS HIGH',
-    'DILLARD ST. ELEMENTARY': 'DILLARD STREET ELEMENTARY',
-    'NORTHLAKE PARK COMMUNITY': 'NORTHLAKE PARK COMMUNITY ELEMENTARY',
-    'WINTER PARK 9TH GRADE CENTER': 'WINTER PARK HIGH 9TH GRADE CENTER'
+df_to_dir_map = {
+    'LAKECOMO': 'LAKECOMOSCHOOL',
+    'AUDUBONPARK': 'AUDUBONPARKSCHOOL',
+    'APOPKAMEMORIALMIDDLE': 'APOPKAMIDDLE',
+    'WHEATLEYELEMENTARY': 'PHILLISWHEATLEYELEMENTARY',
+    'DRPHILLIPSHIGH': 'DRPHILLIPSHIGH',
+    'DILLARDELEMENTARY': 'DILLARDSTREETELEMENTARY',
+    'NORTHLAKEPARKCOMMUNITY': 'NORTHLAKEPARKCOMMUNITYELEMENTARY',
+    'WINTERPARK9THGRADECENTER': 'WINTERPARKHIGH9THGRADECENTER'
 }
+
+df_to_demo_map = {
+    'LAKECOMO': 'LAKECOMOSCHOOL',
+    'AUDUBONPARK': 'AUDUBONPARKSCHOOL',
+    'APOPKAMEMORIALMIDDLE': 'APOPKAMIDDLE',
+    'WHEATLEYELEMENTARY': 'PHILLISWHEATLEYELEMENTARY',
+    'DRPHILLIPSHIGH': 'DRPHILLIPSHIGH',
+    'DILLARDELEMENTARY': 'DILLARDSTREETELEMENTARY',
+    'NORTHLAKEPARKCOMMUNITY': 'NORTHLAKEPARKCOMMUNITYELEMENTARY',
+    'OCVSVIRTUALFRANCHISE': 'ORANGECOUNTYVIRTUAL',
+    'PIEDMONTLAKES': 'PIEDMONTLAKESMIDDLE',
+    'WINTERPARK9THGRADECENTER': 'WINTERPARKHIGH9THGRADECENTER'
+}
+
+
+def mapDirNames(name, name_map):
+    name = name.upper()
+    name = name.replace('K-8', '')
+    name = name.replace("ST.", "")
+    name = name.replace('SCHOOLS', '')
+    name = name.replace('SCHOOL', '')
+    name = name.replace('(', '')
+    name = name.replace(')', '')
+    name = name.replace("’", "")
+    name = name.replace("-", "")
+    name = name.replace(".", "")
+    name = name.replace(' ', '')
+
+    if name in name_map:
+        return name_map[name]
+
+    return name.strip()
 
 
 class Data:
@@ -35,32 +69,38 @@ class Data:
         df = pd.read_csv(dataset['file'])
         df['date'] = df['date'].apply(pd.to_datetime)
         df['count'] = df['count'].apply(pd.to_numeric)
-        self.df = df
 
         dir_df = pd.read_csv(dataset['directory'])
-        self.df['location_map'] = self.df.location.apply(
-            lambda x: self.mapDirNames(x))
-        self.df = self.df.merge(
-            dir_df, how='left', left_on='location_map', right_on='location', suffixes=(None, "_"))
-        self.df.drop(columns=["location_", "location_map"], inplace=True)
+
+        demo_df = pd.read_csv(dataset['demographics'], usecols=[
+                              'date', 'location', 'total'])
+        demo_df['date'] = demo_df['date'].apply(pd.to_datetime)
+
+        df['location_map'] = df.location.apply(
+            lambda x: mapDirNames(x, df_to_dir_map))
+        demo_df['location_map'] = demo_df.location.apply(
+            lambda x: mapDirNames(x, df_to_demo_map))
+        del demo_df['location']
+        dir_df['location_map'] = dir_df.location.apply(
+            lambda x: mapDirNames(x, df_to_dir_map))
+
+        df = df.merge(dir_df, how='left', on='location_map')
+        df = df.sort_values(by='date')
+        demo_df = demo_df.sort_values(by='date')
+        df = pd.merge_asof(df, demo_df, on='date',
+                           by='location_map', direction='nearest')
+
+        df.rename(columns={'location_x': 'location',
+                  'total': 'student_count'}, inplace=True)
+        df.drop(['location_map', 'location_y'], axis=1, inplace=True)
+
+        self.df = df
 
     def getLatestDate(self):
         return self.df.date.max().date()
 
     def getLocationsList(self):
         return self.df.location.sort_values().unique().tolist()
-
-    def mapDirNames(self, name):
-        name = name.upper()
-        name = name.replace('(', '')
-        name = name.replace(')', '')
-        name = name.replace(" SCHOOL", "")
-        name = name.replace("’", "")
-
-        if name in name_map:
-            return name_map[name]
-
-        return name.strip()
 
 
 class Plots:

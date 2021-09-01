@@ -90,7 +90,6 @@ def showAbout():
 
 def showSchools(dataset):
     data = Data(dataset)
-    plots = Plots(data)
 
     all_schools = []
     for loc in data.getLocationsList():
