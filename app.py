@@ -4,6 +4,7 @@ from dash_bootstrap_components._components.Label import Label
 import dash_core_components as dcc
 import dash_html_components as html
 from dash.dependencies import Input, Output, State
+from dash_html_components.Div import Div
 from data import *
 from flask_caching import Cache
 
@@ -54,11 +55,36 @@ app.layout = html.Div(
 )
 
 
-@cache.memoize()  # in seconds
+@cache.memoize()
 def showGraphs(dataset):
-    plots = Plots(Data(dataset))
+    data = Data(dataset)
+    plots = Plots(data)
 
     children = [
+        html.Div([
+            dbc.Row([
+                dbc.Col(
+                    dbc.Card([
+                        dbc.CardHeader(html.B("Total")),
+                        dbc.CardBody(html.B(data.getTotalConfirmedCases()))
+                    ]), align='center'),
+                dbc.Col(
+                    dbc.Card([
+                        dbc.CardHeader(html.B("Employee")),
+                        dbc.CardBody(html.B(data.getTotalEmployeeCases()))
+                    ], color=plots.getColorForType("Employee")), align='center'),
+                dbc.Col(
+                    dbc.Card([
+                        dbc.CardHeader(html.B("Student")),
+                        dbc.CardBody(html.B(data.getTotalStudentCases()))
+                    ], color=plots.getColorForType("Student")), align='center'),
+                dbc.Col(
+                    dbc.Card([
+                        dbc.CardHeader(html.B("Vendor/Visitor")),
+                        dbc.CardBody(html.B(data.getTotalVendorVisitorCases()))
+                    ], color=plots.getColorForType("Vendor/Visitor")), align='center')
+            ], align='center')
+        ]),
         dcc.Graph(id="type_count", figure=plots.plotByType()),
         dcc.Graph(id="level_count", figure=plots.plotByLevel()),
         dcc.Graph(id="box_plot", figure=plots.plotBox()),
