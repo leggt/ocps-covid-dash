@@ -6,6 +6,7 @@ import dash_html_components as html
 from dash.dependencies import Input, Output, State
 from dash_html_components.Div import Div
 from data import *
+from plots import *
 from flask_caching import Cache
 
 app = dash.Dash(external_stylesheets=[dbc.themes.BOOTSTRAP],
@@ -26,7 +27,7 @@ cache = Cache(app.server, config={
 navbar = dbc.NavbarSimple(
     children=[
         dbc.NavItem(dbc.NavLink("About", href="/about")),
-        dbc.NavItem(dbc.NavLink("All", href="/all")),
+        dbc.NavItem(dbc.NavLink("Totals", href="/all")),
         dbc.NavItem(dbc.NavLink("By School", href="/school")),
         dbc.NavItem(dbc.NavLink("Map", href="/map")),
         dbc.DropdownMenu(
@@ -60,6 +61,18 @@ def showGraphs(dataset):
     data = Data(dataset)
     plots = Plots(data)
 
+    level_distribution_plots = []
+    for level in ['Elementary', 'Middle', 'High']:
+        row = dbc.Row([
+            dbc.Col(
+                dbc.Card([
+                    dbc.CardHeader(
+                        html.B("Distribution of %s school cases" % (level))),
+                    dbc.CardBody(dcc.Graph(figure=plots.plotDistributionByLevel(level))
+                                 )]))
+        ])
+        level_distribution_plots.append(row)
+
     children = [
         html.Div([
             dbc.Row([
@@ -85,13 +98,33 @@ def showGraphs(dataset):
                     ], color=plots.getColorForType("Vendor/Visitor")), align='center')
             ], align='center')
         ]),
-        dcc.Graph(id="type_count", figure=plots.plotByType()),
-        dcc.Graph(id="level_count", figure=plots.plotByLevel()),
-        dcc.Graph(id="box_plot", figure=plots.plotBox()),
-    ]
+        html.Div([
+            html.Hr(),
+            dbc.Row([
+                dbc.Col(
+                    dbc.Card([
+                        dbc.CardHeader(html.B("Confirmed cases by Type")),
+                        dbc.CardBody(dcc.Graph(id="type_count", figure=plots.plotByType())
+                                     )]), align='center')]),
+            dbc.Row([
+                dbc.Col(
+                    dbc.Card([
+                        dbc.CardHeader(html.B("Confirmed cases by Level")),
+                        dbc.CardBody(dcc.Graph(id="level_count", figure=plots.plotByLevel())
+                                     )]), align='center')]),
+            dbc.Row([
+                dbc.Col(
+                    dbc.Card([
+                        dbc.CardHeader(
+                            html.B("Distribution of cases by Level")),
+                        dbc.CardBody(dcc.Graph(id="box_plot", figure=plots.plotDistribution())
+                                     )]), align='center')
+            ]),
+            *level_distribution_plots
 
-    for level in ['Elementary', 'Middle', 'High']:
-        children.append(dcc.Graph(figure=plots.plotDistributionByLevel(level)))
+
+        ]),
+    ]
 
     return children
 
@@ -109,8 +142,9 @@ def showAbout():
         about = f.read()
     return [
         dbc.Row([
-            dbc.Col([dcc.Markdown(about)], width={"size": 10, "offset": 1},)
-        ], align='center')
+            dbc.Col([dcc.Markdown(about)], width={
+                    "size": 10, "offset": 1}, align='center')
+        ])
     ]
 
 
@@ -142,7 +176,8 @@ def updateSchools(dataset, schools=[]):
     if len(schools) > 0:
         plots = Plots(Data(dataset))
         return [
-            dcc.Graph(id="type_count", figure=plots.plotBySchool(schools)),
+            dcc.Graph(id="type_count",
+                      figure=plots.plotRollupBySchool(schools)),
         ]
     else:
         return [dbc.Jumbotron(
