@@ -43,6 +43,17 @@ df_to_demo_map = {
     'WINTERPARK9THGRADECENTER': 'WINTERPARKHIGH9THGRADECENTER'
 }
 
+color_map_by_level = {
+    'Elementary': px.colors.qualitative.Plotly[3],
+    'Middle': px.colors.qualitative.Plotly[4],
+    'High': px.colors.qualitative.Plotly[5],
+}
+color_map_by_type = {
+    'Student': px.colors.qualitative.Plotly[0],
+    'Employee': px.colors.qualitative.Plotly[1],
+    'Vendor/Visitor': px.colors.qualitative.Plotly[2],
+}
+
 
 def mapDirNames(name, name_map):
     name = name.upper()
@@ -91,7 +102,7 @@ class Data:
                            by='location_map', direction='nearest')
 
         df.rename(columns={'location_x': 'location',
-                  'total': 'student_count'}, inplace=True)
+                  'total': 'student_count', 'count': 'confirmed'}, inplace=True)
         df.drop(['location_map', 'location_y'], axis=1, inplace=True)
 
         self.df = df
@@ -101,6 +112,18 @@ class Data:
 
     def getLocationsList(self):
         return self.df.location.sort_values().unique().tolist()
+
+    def getTotalConfirmedCases(self):
+        return self.df.confirmed.sum()
+
+    def getTotalEmployeeCases(self):
+        return self.df[self.df.type == 'Employee'].confirmed.sum()
+
+    def getTotalStudentCases(self):
+        return self.df[self.df.type == 'Student'].confirmed.sum()
+
+    def getTotalVendorVisitorCases(self):
+        return self.df[self.df.type == 'Vendor/Visitor'].confirmed.sum()
 
 
 class Plots:
@@ -126,9 +149,9 @@ class Plots:
         df = self.df
         df = df[df.date >= datetime(2000, 1, 1)]
         df = df.dropna()
-        all = df.groupby(by=['date', 'type'])['count'].sum().reset_index()
-        fig = px.bar(all, x='date', y='count', color='type',
-                     title="Confirmed cases by type")
+        all = df.groupby(by=['date', 'type'])['confirmed'].sum().reset_index()
+        fig = px.bar(all, x='date', y='confirmed', color='type',
+                     title="Confirmed cases by type", color_discrete_map=color_map_by_type)
         fig.update_layout(legend=self.legend, xaxis_title="", yaxis_title="")
         return fig
 
@@ -137,12 +160,12 @@ class Plots:
         df = df[df.date >= datetime(2000, 1, 1)]
         df = df.dropna()
         all = df.groupby(by=['date', 'level'])[
-            'count'].sum().reset_index()
+            'confirmed'].sum().reset_index()
         all['level'] = pd.Categorical(
             all['level'], ['Elementary', 'Middle', 'High'])
         all = all.sort_values(by='level')
-        fig = px.bar(all, x='date', y='count', color='level',
-                     title="Confirmed cases by school level")
+        fig = px.bar(all, x='date', y='confirmed', color='level',
+                     title="Confirmed cases by school level", color_discrete_map=color_map_by_level)
         fig.update_layout(legend=self.legend, xaxis_title="", yaxis_title="")
         return fig
 
@@ -153,33 +176,33 @@ class Plots:
         if len(schools) > 0:
             df = df[df.location.isin(schools)]
 
-        fig = px.bar(df, x='date', y='count', color='location',
+        fig = px.bar(df, x='date', y='confirmed', color='location',
                      title="Confirmed cases by school")
         fig.update_layout(legend=self.legend, xaxis_title="", yaxis_title="")
         return fig
 
     def plotBox(self):
         all = self.df.groupby(by=['level', 'location'])[
-            'count'].sum().reset_index().copy()
+            'confirmed'].sum().reset_index().copy()
         # TODO why can't I do this before grouping?
         all['level'] = pd.Categorical(
             all['level'], ['Elementary', 'Middle', 'High'])
         all = all.sort_values(by='level')
 
-        fig = px.box(all, x='count', y='level', color='level', points='all',
-                     hover_name='location', title="Distribution of confirmed cases by school level")
+        fig = px.box(all, x='confirmed', y='level', color='level', points='all',
+                     hover_name='location', title="Distribution of confirmed cases by school level", color_discrete_map=color_map_by_level)
         fig.update_layout(legend=self.legend, xaxis_title="", yaxis_title="")
         return fig
 
     def plotMap(self, filter=[]):
         df = self.df
         df_bycount = df.groupby(
-            ['location', 'level', 'lat', 'long']).sum(['count'])
+            ['location', 'level', 'lat', 'long']).sum(['confirmed'])
         df_bycount.dropna()
         df = df_bycount.reset_index()
 
         fig = px.scatter_mapbox(df, lat="lat", lon="long",
-                                color_discrete_sequence=["red", "yellow", "blue"], zoom=9, color='level', size='count', size_max=50, opacity=.5, hover_name='location', hover_data=['level', 'count'])
+                                color_discrete_map=color_map_by_level, zoom=9, color='level', size='confirmed', size_max=50, opacity=.75, hover_name='location', hover_data=['level', 'confirmed'])
 
         fig.update_layout(mapbox_style="open-street-map")
         fig.update_layout(autosize=True, legend=self.legend,
@@ -188,17 +211,17 @@ class Plots:
 
     def plotDistributionByLevel(self, level):
         df = self.df
-        df = df[['level', 'location', 'count']].groupby(
+        df = df[['level', 'location', 'confirmed']].groupby(
             ['level', 'location']).sum().reset_index()
         df = df[df.level == level]
 
         fig = make_subplots(rows=4, cols=1, shared_xaxes=True, shared_yaxes=False,
                             specs=[[{}], [{"rowspan": 3}], [None], [None]],
                             )
-        fig.add_box(x=df['count'], name=level, row=1, col=1,
+        fig.add_box(x=df['confirmed'], name=level, row=1, col=1,
                     marker={'color': self.getColorForLevel(level)})
 
-        fig.add_bar(x=df['count'], y=df['location'], row=2, col=1, name="Schools", marker={
+        fig.add_bar(x=df['confirmed'], y=df['location'], row=2, col=1, name="Schools", marker={
                     'color': self.getColorForLevel(level)})
         fig.update_yaxes(visible=False)
         fig.update_xaxes(visible=True, row=1, col=1,
@@ -210,14 +233,11 @@ class Plots:
 
         return fig
 
+    def getColorForType(self, type):
+        return color_map_by_type[type]
+
     def getColorForLevel(self, level):
-        if level == 'Elementary':
-            return px.colors.qualitative.Plotly[0]
-        if level == 'Middle':
-            return px.colors.qualitative.Plotly[1]
-        if level == 'High':
-            return px.colors.qualitative.Plotly[2]
-        return "black"
+        return color_map_by_level[level]
 
 
 if __name__ == "__main__":
