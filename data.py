@@ -44,14 +44,14 @@ df_to_demo_map = {
 }
 
 color_map_by_level = {
-    'Elementary': px.colors.qualitative.Plotly[3],
-    'Middle': px.colors.qualitative.Plotly[4],
-    'High': px.colors.qualitative.Plotly[5],
+    'Elementary': px.colors.qualitative.Plotly[0],
+    'Middle': px.colors.qualitative.Plotly[1],
+    'High': px.colors.qualitative.Plotly[2],
 }
 color_map_by_type = {
-    'Student': px.colors.qualitative.Plotly[0],
-    'Employee': px.colors.qualitative.Plotly[1],
-    'Vendor/Visitor': px.colors.qualitative.Plotly[2],
+    'Student': px.colors.qualitative.Plotly[3],
+    'Employee': px.colors.qualitative.Plotly[4],
+    'Vendor/Visitor': px.colors.qualitative.Plotly[5],
 }
 
 
