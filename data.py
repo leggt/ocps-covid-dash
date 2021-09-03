@@ -99,17 +99,34 @@ class Data:
     def getLocationsList(self):
         return self.df.location.sort_values().unique().tolist()
 
-    def getTotalConfirmedCases(self):
-        return self.df.confirmed.sum()
+    def getTotalsForSchool(self, school):
+        df = self.df[self.df.location == school]
+        return (
+            self.getTotalConfirmedCases(df),
+            self.getTotalEmployeeCases(df),
+            self.getTotalStudentCases(df),
+            self.getTotalVendorVisitorCases(df),
+        )
 
-    def getTotalEmployeeCases(self):
-        return self.df[self.df.type == 'Employee'].confirmed.sum()
+    def getTotalConfirmedCases(self, df=None):
+        if df is None:
+            df = self.df
+        return df.confirmed.sum()
 
-    def getTotalStudentCases(self):
-        return self.df[self.df.type == 'Student'].confirmed.sum()
+    def getTotalEmployeeCases(self, df=None):
+        if df is None:
+            df = self.df
+        return df[df.type == 'Employee'].confirmed.sum()
 
-    def getTotalVendorVisitorCases(self):
-        return self.df[self.df.type == 'Vendor/Visitor'].confirmed.sum()
+    def getTotalStudentCases(self, df=None):
+        if df is None:
+            df = self.df
+        return df[df.type == 'Student'].confirmed.sum()
+
+    def getTotalVendorVisitorCases(self, df=None):
+        if df is None:
+            df = self.df
+        return df[df.type == 'Vendor/Visitor'].confirmed.sum()
 
 
 if __name__ == "__main__":

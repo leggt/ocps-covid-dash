@@ -74,59 +74,61 @@ def showGraphs(dataset):
         level_distribution_plots.append(row)
 
     children = [
-        html.Div([
-            dbc.Row([
-                dbc.Col(
-                    dbc.Card([
-                        dbc.CardHeader(html.B("Total")),
-                        dbc.CardBody(html.B(data.getTotalConfirmedCases()))
-                    ]), align='center'),
-                dbc.Col(
-                    dbc.Card([
-                        dbc.CardHeader(html.B("Employee")),
-                        dbc.CardBody(html.B(data.getTotalEmployeeCases()))
-                    ], color=plots.getColorForType("Employee")), align='center'),
-                dbc.Col(
-                    dbc.Card([
-                        dbc.CardHeader(html.B("Student")),
-                        dbc.CardBody(html.B(data.getTotalStudentCases()))
-                    ], color=plots.getColorForType("Student")), align='center'),
-                dbc.Col(
-                    dbc.Card([
-                        dbc.CardHeader(html.B("Vendor/Visitor")),
-                        dbc.CardBody(html.B(data.getTotalVendorVisitorCases()))
-                    ], color=plots.getColorForType("Vendor/Visitor")), align='center')
-            ], align='center')
+        getTotals(data.getTotalConfirmedCases(), data.getTotalEmployeeCases(
+        ), data.getTotalStudentCases(), data.getTotalVendorVisitorCases()),
+        html.Hr(),
+        dbc.Row([
+            dbc.Col(
+                dbc.Card([
+                    dbc.CardHeader(html.B("Confirmed cases by Type")),
+                    dbc.CardBody(dcc.Graph(id="type_count", figure=plots.plotByType())
+                                 )]), align='center')]),
+        dbc.Row([
+            dbc.Col(
+                dbc.Card([
+                    dbc.CardHeader(html.B("Confirmed cases by Level")),
+                    dbc.CardBody(dcc.Graph(id="level_count", figure=plots.plotByLevel())
+                                 )]), align='center')]),
+        dbc.Row([
+            dbc.Col(
+                dbc.Card([
+                    dbc.CardHeader(
+                        html.B("Distribution of cases by Level")),
+                    dbc.CardBody(dcc.Graph(id="box_plot", figure=plots.plotDistribution())
+                                 )]), align='center')
         ]),
-        html.Div([
-            html.Hr(),
-            dbc.Row([
-                dbc.Col(
-                    dbc.Card([
-                        dbc.CardHeader(html.B("Confirmed cases by Type")),
-                        dbc.CardBody(dcc.Graph(id="type_count", figure=plots.plotByType())
-                                     )]), align='center')]),
-            dbc.Row([
-                dbc.Col(
-                    dbc.Card([
-                        dbc.CardHeader(html.B("Confirmed cases by Level")),
-                        dbc.CardBody(dcc.Graph(id="level_count", figure=plots.plotByLevel())
-                                     )]), align='center')]),
-            dbc.Row([
-                dbc.Col(
-                    dbc.Card([
-                        dbc.CardHeader(
-                            html.B("Distribution of cases by Level")),
-                        dbc.CardBody(dcc.Graph(id="box_plot", figure=plots.plotDistribution())
-                                     )]), align='center')
-            ]),
-            *level_distribution_plots
+        *level_distribution_plots
 
 
-        ]),
     ]
 
     return children
+
+
+def getTotals(total, employee, student, vendor, margin="5px"):
+    return html.Div([
+        dbc.Row([
+            dbc.Col(
+                dbc.Card([
+                    dbc.CardHeader(html.B("Total")),
+                    dbc.CardBody(html.B(total))
+                ])),
+            dbc.Col(
+                dbc.Card([
+                    dbc.CardHeader(html.B("Employee")),
+                    dbc.CardBody(html.B(employee))
+                ], color=getColorForType("Employee"))),
+            dbc.Col(
+                dbc.Card([
+                    dbc.CardHeader(html.B("Student")),
+                    dbc.CardBody(html.B(student))
+                ], color=getColorForType("Student"))),
+            dbc.Col(
+                dbc.Card([
+                    dbc.CardHeader(html.B("Vendor/Visitor")),
+                    dbc.CardBody(html.B(vendor))
+                ], color=getColorForType("Vendor/Visitor")))
+        ])], style={'margin': margin})
 
 
 @cache.memoize()  # in seconds
@@ -174,11 +176,25 @@ def showSchools(dataset):
 @cache.memoize()  # in seconds
 def updateSchools(dataset, schools=[]):
     if len(schools) > 0:
-        plots = Plots(Data(dataset))
-        return [
+        data = Data(dataset)
+        plots = Plots(data)
+        ret = [
             dcc.Graph(id="type_count",
                       figure=plots.plotRollupBySchool(schools)),
         ]
+        for school in schools:
+            ret.extend([
+                dbc.Row([
+                    dbc.Col(
+                        dbc.Card([
+                            dbc.CardHeader(html.B(school)),
+                            dbc.CardBody(
+                                getTotals(*data.getTotalsForSchool(school), "5px 50px 5px"))
+                        ]))
+                ])
+            ])
+
+        return ret
     else:
         return [dbc.Jumbotron(
             [

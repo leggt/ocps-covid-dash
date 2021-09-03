@@ -18,6 +18,14 @@ color_map_by_type = {
 }
 
 
+def getColorForType(type):
+    return color_map_by_type[type]
+
+
+def getColorForLevel(level):
+    return color_map_by_level[level]
+
+
 class Plots:
     legend = dict(
         orientation="h",
@@ -113,10 +121,10 @@ class Plots:
                             specs=[[{}], [{"rowspan": 3}], [None], [None]],
                             )
         fig.add_box(x=df['confirmed'], name=level, row=1, col=1,
-                    marker={'color': self.getColorForLevel(level)})
+                    marker={'color': getColorForLevel(level)})
 
         fig.add_bar(x=df['confirmed'], y=df['location'], row=2, col=1, name="Schools", marker={
-                    'color': self.getColorForLevel(level)})
+                    'color': getColorForLevel(level)})
         fig.update_yaxes(visible=False)
         fig.update_xaxes(visible=True, row=1, col=1,
                          showticklabels=True)
@@ -124,9 +132,3 @@ class Plots:
                          title_text="Total # of confirmed cases by school")
 
         return fig
-
-    def getColorForType(self, type):
-        return color_map_by_type[type]
-
-    def getColorForLevel(self, level):
-        return color_map_by_level[level]
