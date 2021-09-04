@@ -128,6 +128,10 @@ class Data:
             df = self.df
         return df[df.type == 'Vendor/Visitor'].confirmed.sum()
 
+    def getLevelForSchool(self, school):
+        df = self.df
+        return df['level'][df.location == school].unique()[0]
+
 
 if __name__ == "__main__":
     d = Data(d20212022)

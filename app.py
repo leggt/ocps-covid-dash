@@ -61,43 +61,32 @@ def showGraphs(dataset):
     data = Data(dataset)
     plots = Plots(data)
 
-    level_distribution_plots = []
-    for level in ['Elementary', 'Middle', 'High']:
-        row = dbc.Row([
-            dbc.Col(
-                dbc.Card([
-                    dbc.CardHeader(
-                        html.B("Distribution of %s school cases" % (level))),
-                    dbc.CardBody(dcc.Graph(figure=plots.plotDistributionByLevel(level))
-                                 )]))
-        ])
-        level_distribution_plots.append(row)
-
     children = [
         getTotals(data.getTotalConfirmedCases(), data.getTotalEmployeeCases(
         ), data.getTotalStudentCases(), data.getTotalVendorVisitorCases()),
-        html.Hr(),
         dbc.Row([
             dbc.Col(
                 dbc.Card([
-                    dbc.CardHeader(html.B("Confirmed cases by Type")),
-                    dbc.CardBody(dcc.Graph(id="type_count", figure=plots.plotByType())
-                                 )]), align='center')]),
-        dbc.Row([
-            dbc.Col(
-                dbc.Card([
-                    dbc.CardHeader(html.B("Confirmed cases by Level")),
-                    dbc.CardBody(dcc.Graph(id="level_count", figure=plots.plotByLevel())
-                                 )]), align='center')]),
+                    dbc.CardHeader(html.B("Confirmed cases by count")),
+                    dbc.CardBody([
+                        dcc.Graph(id="type_count", figure=plots.plotByType()),
+                        dcc.Graph(id="level_count", figure=plots.plotByLevel())
+
+                    ])]), align='center')]),
         dbc.Row([
             dbc.Col(
                 dbc.Card([
                     dbc.CardHeader(
-                        html.B("Distribution of cases by Level")),
-                    dbc.CardBody(dcc.Graph(id="box_plot", figure=plots.plotDistribution())
-                                 )]), align='center')
+                        html.B("Distribution of cases")),
+                    dbc.CardBody([dcc.Graph(id="box_plot", figure=plots.plotDistribution()),
+                                  dcc.Graph(
+                                      figure=plots.plotDistributionByLevel('Elementary')),
+                                  dcc.Graph(
+                                      figure=plots.plotDistributionByLevel('Middle')),
+                                  dcc.Graph(
+                                      figure=plots.plotDistributionByLevel('High'))
+                                  ])]), align='center')
         ]),
-        *level_distribution_plots
 
 
     ]
@@ -178,18 +167,22 @@ def updateSchools(dataset, schools=[]):
     if len(schools) > 0:
         data = Data(dataset)
         plots = Plots(data)
-        ret = [
-            dcc.Graph(id="type_count",
-                      figure=plots.plotRollupBySchool(schools)),
-        ]
+
+        ret = []
         for school in schools:
             ret.extend([
                 dbc.Row([
                     dbc.Col(
                         dbc.Card([
                             dbc.CardHeader(html.B(school)),
-                            dbc.CardBody(
-                                getTotals(*data.getTotalsForSchool(school), "5px 50px 5px"))
+                            dbc.CardBody([
+                                getTotals(
+                                    *data.getTotalsForSchool(school), "5px 50px 5px"),
+                                dcc.Graph(
+                                    id="type_count", figure=plots.plotSchoolCasesByDate(school)),
+                                dcc.Graph(
+                                    figure=plots.plotDistributionsForSchool(school))
+                            ])
                         ]))
                 ])
             ])

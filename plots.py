@@ -4,12 +4,14 @@ from data import *
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
+from plotly.graph_objs import layout
 from plotly.subplots import make_subplots
 
 color_map_by_level = {
     'Elementary': px.colors.qualitative.Plotly[0],
     'Middle': px.colors.qualitative.Plotly[1],
     'High': px.colors.qualitative.Plotly[2],
+    'All': px.colors.qualitative.Plotly[6],
 }
 color_map_by_type = {
     'Student': px.colors.qualitative.Plotly[3],
@@ -51,7 +53,7 @@ class Plots:
         df = df.dropna()
         all = df.groupby(by=['date', 'type'])['confirmed'].sum().reset_index()
         fig = px.bar(all, x='date', y='confirmed', color='type',
-                     color_discrete_map=color_map_by_type)
+                     color_discrete_map=color_map_by_type, title="Confirmed cases by Type")
         fig.update_layout(legend=self.legend, xaxis_title="", yaxis_title="")
         return fig
 
@@ -65,34 +67,16 @@ class Plots:
             all['level'], ['Elementary', 'Middle', 'High'])
         all = all.sort_values(by='level')
         fig = px.bar(all, x='date', y='confirmed', color='level',
-                     color_discrete_map=color_map_by_level)
+                     color_discrete_map=color_map_by_level, title="Confirmed cases by Level")
         fig.update_layout(legend=self.legend, xaxis_title="", yaxis_title="")
         return fig
 
-    def plotRollupBySchool(self, schools=[]):
+    def plotSchoolCasesByDate(self, school):
         df = self.df
-        df = df[df.date >= datetime(2000, 1, 1)]
-        df = df.dropna()
-        if len(schools) > 0:
-            df = df[df.location.isin(schools)]
+        df = df[df.location == school]
 
-        df = df[['date', 'location', 'confirmed']]
-        df = df.groupby(['date', 'location']).sum().reset_index()
-
-        fig = px.bar(df, x='date', y='confirmed', color='location')
-        fig.update_layout(legend=self.legend, xaxis_title="", yaxis_title="")
-        return fig
-
-    def plotDistribution(self):
-        all = self.df.groupby(by=['level', 'location'])[
-            'confirmed'].sum().reset_index().copy()
-        # TODO why can't I do this before grouping?
-        all['level'] = pd.Categorical(
-            all['level'], ['Elementary', 'Middle', 'High'])
-        all = all.sort_values(by='level')
-
-        fig = px.box(all, x='confirmed', y='level', color='level', points='all',
-                     hover_name='location',  color_discrete_map=color_map_by_level)
+        fig = px.bar(df, x='date', y='confirmed', color='type',
+                     color_discrete_map=color_map_by_type, title="%s confirmed cases by date" % (school))
         fig.update_layout(legend=self.legend, xaxis_title="", yaxis_title="")
         return fig
 
@@ -111,24 +95,68 @@ class Plots:
                           xaxis_title="", yaxis_title="")
         return fig
 
-    def plotDistributionByLevel(self, level):
-        df = self.df
-        df = df[['level', 'location', 'confirmed']].groupby(
-            ['level', 'location']).sum().reset_index()
-        df = df[df.level == level]
+    def plotDistributionsForSchool(self, school):
+        level = self.data.getLevelForSchool(school)
+        confirmed = self.data.getTotalsForSchool(school)[0]
 
-        fig = make_subplots(rows=4, cols=1, shared_xaxes=True, shared_yaxes=False,
+        all = self.df
+        all = all[['level', 'location', 'confirmed']].groupby(
+            ['level', 'location']).sum().reset_index()
+
+        by_level = all[all.level == level]
+
+        fig = go.Figure()
+        all_level = 'All'
+        fig.add_box(x=all['confirmed'], name=all_level,
+                    marker={'color': getColorForLevel(all_level), 'opacity': .5}, legendgroup=all_level, hovertext=all.location)
+        fig.add_scatter(x=[confirmed], y=[all_level], marker={'symbol': 'star', 'size': 8}, showlegend=False,
+                        legendgroup=all_level, hovertemplate='%{hovertext}<br>Confirmed:%{x}<extra></extra>', hovertext=[school])
+
+        fig.add_box(x=by_level['confirmed'], name=level,
+                    marker={'color': getColorForLevel(level), 'opacity': .5}, legendgroup=level)
+        fig.add_scatter(x=[confirmed], y=[level], marker={'symbol': 'star', 'size': 8}, legendgroup=level,
+                        showlegend=False, hovertemplate='%{hovertext}<br>Confirmed:%{x}<extra></extra>', hovertext=[school])
+
+        fig.update_yaxes(visible=False)
+        fig.update_layout(
+            legend=self.legend, title="%s vs distribution of other %s schools and all schools" % (school, level))
+        return fig
+
+    def plotDistributionByLevel(self, level):
+        all = self.df
+        all = all[['level', 'location', 'confirmed']].groupby(
+            ['level', 'location']).sum().reset_index()
+
+        if level != 'All':
+            all = all[all.level == level]
+
+        fig = make_subplots(rows=4, cols=1, shared_xaxes=False, shared_yaxes=False,
                             specs=[[{}], [{"rowspan": 3}], [None], [None]],
                             )
-        fig.add_box(x=df['confirmed'], name=level, row=1, col=1,
-                    marker={'color': getColorForLevel(level)})
-
-        fig.add_bar(x=df['confirmed'], y=df['location'], row=2, col=1, name="Schools", marker={
-                    'color': getColorForLevel(level)})
+        fig.add_box(x=all['confirmed'], name=level, row=1, col=1,
+                    marker={'color': getColorForLevel(level), 'opacity': .5}, showlegend=False)
+        title = "Distribution of confirmed cases in %s schools" % (level)
+        fig.update_layout(barmode='stack', title=title)
         fig.update_yaxes(visible=False)
         fig.update_xaxes(visible=True, row=1, col=1,
                          showticklabels=True)
         fig.update_xaxes(visible=True, row=2, col=1, showticklabels=True,
-                         title_text="Total # of confirmed cases by school")
+                         )
 
+        fig.add_bar(x=all['confirmed'], y=[1 for x in all['confirmed']], row=2, col=1, marker={
+                    'color': getColorForLevel(level), 'opacity': .5}, hovertemplate='%{hovertext}<br>Confirmed:%{x}<extra></extra>', hovertext=all['location'], showlegend=False)
+
+        return fig
+
+    def plotDistribution(self):
+        all = self.df.groupby(by=['level', 'location'])[
+            'confirmed'].sum().reset_index().copy()
+        # why can't I do this before grouping?
+        all['level'] = pd.Categorical(
+            all['level'], ['Elementary', 'Middle', 'High'])
+        all = all.sort_values(by='level')
+
+        fig = px.box(all, x='confirmed', y='level', color='level', points='all',
+                     hover_name='location',  color_discrete_map=color_map_by_level, title="Distribution of cases by Level")
+        fig.update_layout(legend=self.legend, xaxis_title="", yaxis_title="")
         return fig
