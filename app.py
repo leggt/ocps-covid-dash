@@ -8,6 +8,7 @@ from dash_html_components.Div import Div
 from data import *
 from plots import *
 from flask_caching import Cache
+import sys
 
 app = dash.Dash(external_stylesheets=[dbc.themes.BOOTSTRAP],
                 # https://dash-bootstrap-components.opensource.faculty.ai/docs/faq/
@@ -23,6 +24,10 @@ cache = Cache(app.server, config={
     # Cache is valid for a day. (Cache is cleared when we get new data in the nightly scripts)
     'CACHE_DEFAULT_TIMEOUT': 60*60*24
 })
+
+if len(sys.argv) > 1 and sys.argv[1] == 'debug':
+    print("clearing cache")
+    cache.clear()
 
 navbar = dbc.NavbarSimple(
     children=[
@@ -57,13 +62,19 @@ app.layout = html.Div(
 
 
 @cache.memoize()
-def showGraphs(dataset):
+def getDataPlots(dataset):
     data = Data(dataset)
     plots = Plots(data)
+    return data, plots
+
+
+@cache.memoize()
+def showGraphs(dataset):
+    data, plots = getDataPlots(dataset)
 
     children = [
         getTotals(data.getTotalConfirmedCases(), data.getTotalEmployeeCases(
-        ), data.getTotalStudentCases(), data.getTotalVendorVisitorCases()),
+        ), data.getTotalStudentCases(), data.getTotalVendorVisitorCases(), data.getTotalPerCapita()),
         dbc.Row([
             dbc.Col(
                 dbc.Card([
@@ -94,7 +105,7 @@ def showGraphs(dataset):
     return children
 
 
-def getTotals(total, employee, student, vendor, margin="5px"):
+def getTotals(total, employee, student, vendor, per_capita, margin="5px"):
     return html.Div([
         dbc.Row([
             dbc.Col(
@@ -109,8 +120,9 @@ def getTotals(total, employee, student, vendor, margin="5px"):
                 ], color=getColorForType("Employee"))),
             dbc.Col(
                 dbc.Card([
-                    dbc.CardHeader(html.B("Student")),
-                    dbc.CardBody(html.B(student))
+                    dbc.CardHeader(html.B("Student (%)")),
+                    dbc.CardBody(html.B("%d (%.2f%%)" %
+                                 (student, student/per_capita*100)))
                 ], color=getColorForType("Student"))),
             dbc.Col(
                 dbc.Card([
@@ -122,7 +134,7 @@ def getTotals(total, employee, student, vendor, margin="5px"):
 
 @cache.memoize()  # in seconds
 def showMap(dataset):
-    plots = Plots(Data(dataset))
+    _, plots = getDataPlots(dataset)
     return [
         dcc.Graph(id="map", figure=plots.plotMap(), style={'height': '100vh'})
     ]
@@ -165,8 +177,7 @@ def showSchools(dataset):
 @cache.memoize()  # in seconds
 def updateSchools(dataset, schools=[]):
     if len(schools) > 0:
-        data = Data(dataset)
-        plots = Plots(data)
+        data, plots = getDataPlots(dataset)
 
         ret = []
         for school in schools:

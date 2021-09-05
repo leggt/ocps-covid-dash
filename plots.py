@@ -55,19 +55,27 @@ class Plots:
         if demo_df is None:
             demo_df = self.data.demo_df
 
+        new_count = 0
         # New cases
         for typ in color_order:
             df = plot_df
             df = df[df[color_column] == typ]
+            if df.empty:
+                continue
+            new_count = new_count+1
             df = df.groupby('date').confirmed.sum().reset_index()
 
             fig.add_bar(x=df['date'], y=df.confirmed, name=typ,
                         marker={'color': color_map[typ]})
 
+        cum_count = 0
         # Cumulative
         for typ in color_order:
             df = plot_df
             df = df[df[color_column] == typ]
+            if df.empty:
+                continue
+            cum_count = cum_count+1
             df = df[['date', 'confirmed']].groupby(
                 ['date']).confirmed.sum().reset_index()
             df.confirmed = df.confirmed.cumsum()
@@ -75,10 +83,14 @@ class Plots:
             fig.add_bar(x=df['date'], y=df.confirmed, name=typ,
                         visible=False, marker={'color': color_map[typ]})
 
+        cum_pc_count = 0
         # Cumulative per capita
         for typ in color_order:
             df = plot_df
             df = df[df[color_column] == typ]
+            if df.empty:
+                continue
+            cum_pc_count = cum_pc_count+1
             df = df[['date', 'confirmed']].groupby(
                 ['date']).confirmed.sum().reset_index()
 
@@ -96,14 +108,25 @@ class Plots:
                           yaxis_title="", title=title)
         fig.layout.barmode = 'stack'
 
+        new_vis = [True for x in range(new_count)]
+        new_vis.extend([False for x in range(cum_count)])
+        new_vis.extend([False for x in range(cum_pc_count)])
+
+        cum_vis = [False for x in range(new_count)]
+        cum_vis.extend([True for x in range(cum_count)])
+        cum_vis.extend([False for x in range(cum_pc_count)])
+
+        cum_pc_vis = [False for x in range(new_count)]
+        cum_pc_vis.extend([False for x in range(cum_count)])
+        cum_pc_vis.extend([True for x in range(cum_pc_count)])
+
         fig.update_layout(
             updatemenus=[
                 dict(
                     buttons=list([
                         dict(
                             args=[
-                                {"visible": [True, True, True, False,
-                                             False, False, False, False, False]},
+                                {"visible": new_vis},
                                 {'yaxis.tickformat': '.0'}
                             ],
                             label="New cases",
@@ -111,8 +134,7 @@ class Plots:
                         ),
                         dict(
                             args=[
-                                {"visible": [False, False, False, True,
-                                             True, True, False, False, False]},
+                                {"visible": cum_vis},
                                 {'yaxis.tickformat': '.0'}
                             ],
                             label="Cumulative",
@@ -120,8 +142,7 @@ class Plots:
                         ),
                         dict(
                             args=[
-                                {"visible": [False, False, False, False,
-                                             False, False, True, True, True]},
+                                {"visible": cum_pc_vis},
                                 {'yaxis.tickformat': '.2%'}
                             ],
                             label="Cumulative per capita",
