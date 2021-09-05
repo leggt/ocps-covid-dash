@@ -47,38 +47,110 @@ class Plots:
         df = df.dropna()
         return df
 
-    def plotByType(self):
-        df = self.df
-        df = df[df.date >= datetime(2000, 1, 1)]
-        df = df.dropna()
-        all = df.groupby(by=['date', 'type'])['confirmed'].sum().reset_index()
-        fig = px.bar(all, x='date', y='confirmed', color='type',
-                     color_discrete_map=color_map_by_type, title="Confirmed cases by Type")
-        fig.update_layout(legend=self.legend, xaxis_title="", yaxis_title="")
+    def plotBy(self, title, color_column, color_order, color_map, plot_df=None, demo_df=None):
+        fig = go.Figure()
+        if plot_df is None:
+            plot_df = self.df
+
+        if demo_df is None:
+            demo_df = self.data.demo_df
+
+        # New cases
+        for typ in color_order:
+            df = plot_df
+            df = df[df[color_column] == typ]
+            df = df.groupby('date').confirmed.sum().reset_index()
+
+            fig.add_bar(x=df['date'], y=df.confirmed, name=typ,
+                        marker={'color': color_map[typ]})
+
+        # Cumulative
+        for typ in color_order:
+            df = plot_df
+            df = df[df[color_column] == typ]
+            df = df[['date', 'confirmed']].groupby(
+                ['date']).confirmed.sum().reset_index()
+            df.confirmed = df.confirmed.cumsum()
+
+            fig.add_bar(x=df['date'], y=df.confirmed, name=typ,
+                        visible=False, marker={'color': color_map[typ]})
+
+        # Cumulative per capita
+        for typ in color_order:
+            df = plot_df
+            df = df[df[color_column] == typ]
+            df = df[['date', 'confirmed']].groupby(
+                ['date']).confirmed.sum().reset_index()
+
+            demo_df = demo_df[['date', 'total']].groupby(
+                ['date']).total.sum().reset_index()
+            df = pd.merge_asof(df, demo_df, on='date',
+                               direction='nearest', suffixes=(None, "_y"))
+            df['confirmed'] = df.apply(lambda x: x.confirmed/x.total, axis=1)
+            df.confirmed = df.confirmed.cumsum()
+
+            fig.add_bar(x=df['date'], y=df.confirmed, name=typ,
+                        visible=False, marker={'color': color_map[typ]})
+
+        fig.update_layout(legend=self.legend, xaxis_title="",
+                          yaxis_title="", title=title)
+        fig.layout.barmode = 'stack'
+
+        fig.update_layout(
+            updatemenus=[
+                dict(
+                    buttons=list([
+                        dict(
+                            args=[
+                                {"visible": [True, True, True, False,
+                                             False, False, False, False, False]},
+                                {'yaxis.tickformat': '.0'}
+                            ],
+                            label="New cases",
+                            method="update"
+                        ),
+                        dict(
+                            args=[
+                                {"visible": [False, False, False, True,
+                                             True, True, False, False, False]},
+                                {'yaxis.tickformat': '.0'}
+                            ],
+                            label="Cumulative",
+                            method="update"
+                        ),
+                        dict(
+                            args=[
+                                {"visible": [False, False, False, False,
+                                             False, False, True, True, True]},
+                                {'yaxis.tickformat': '.2%'}
+                            ],
+                            label="Cumulative per capita",
+                            method="update"
+                        ),
+                    ]),
+                    direction="down",
+                    showactive=True,
+                    xanchor="left",
+                    x=.002,
+                    yanchor="bottom",
+                    y=1.02
+                ),
+            ]
+        )
+
         return fig
+
+    def plotByType(self):
+        return self.plotBy("Confirmed cases by Type", 'type', ['Employee', 'Student', 'Vendor/Visitor'], color_map_by_type)
 
     def plotByLevel(self):
-        df = self.df
-        df = df[df.date >= datetime(2000, 1, 1)]
-        df = df.dropna()
-        all = df.groupby(by=['date', 'level'])[
-            'confirmed'].sum().reset_index()
-        all['level'] = pd.Categorical(
-            all['level'], ['Elementary', 'Middle', 'High'])
-        all = all.sort_values(by='level')
-        fig = px.bar(all, x='date', y='confirmed', color='level',
-                     color_discrete_map=color_map_by_level, title="Confirmed cases by Level")
-        fig.update_layout(legend=self.legend, xaxis_title="", yaxis_title="")
-        return fig
+        return self.plotBy("Confirmed cases by Level", 'level', ['Elementary', 'Middle', 'High'], color_map_by_level)
 
-    def plotSchoolCasesByDate(self, school):
-        df = self.df
-        df = df[df.location == school]
-
-        fig = px.bar(df, x='date', y='confirmed', color='type',
-                     color_discrete_map=color_map_by_type, title="%s confirmed cases by date" % (school))
-        fig.update_layout(legend=self.legend, xaxis_title="", yaxis_title="")
-        return fig
+    def plotBySchool(self, school):
+        df = self.df[self.df.location == school]
+        demo_df = self.data.demo_df
+        demo_df = demo_df[demo_df.location == school]
+        return self.plotBy("%s confirmed cases by date" % (school), 'type', ['Employee', 'Student', 'Vendor/Visitor'], color_map_by_type, df, demo_df)
 
     def plotMap(self, filter=[]):
         df = self.df

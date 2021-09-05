@@ -81,15 +81,18 @@ class Data:
         dir_df['location_map'] = dir_df.location.apply(
             lambda x: mapDirNames(x, df_to_dir_map))
 
+        demo_df = pd.merge(
+            demo_df, df[['location', 'location_map']], on='location_map')
+        del demo_df['location_map']
+        demo_df = demo_df.sort_values(by='date')
+        self.demo_df = demo_df.drop_duplicates()
+
         df = df.merge(dir_df, how='left', on='location_map')
         df = df.sort_values(by='date')
-        demo_df = demo_df.sort_values(by='date')
-        df = pd.merge_asof(df, demo_df, on='date',
-                           by='location_map', direction='nearest')
 
         df.rename(columns={'location_x': 'location',
                   'total': 'student_count', 'count': 'confirmed'}, inplace=True)
-        df.drop(['location_map', 'location_y'], axis=1, inplace=True)
+        df.drop(['location_map'], axis=1, inplace=True)
 
         self.df = df
 

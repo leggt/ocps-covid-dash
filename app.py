@@ -179,7 +179,7 @@ def updateSchools(dataset, schools=[]):
                                 getTotals(
                                     *data.getTotalsForSchool(school), "5px 50px 5px"),
                                 dcc.Graph(
-                                    id="type_count", figure=plots.plotSchoolCasesByDate(school)),
+                                    id="type_count", figure=plots.plotBySchool(school)),
                                 dcc.Graph(
                                     figure=plots.plotDistributionsForSchool(school))
                             ])
