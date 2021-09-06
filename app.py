@@ -76,7 +76,7 @@ def showGraphs(dataset):
 
     children = [
         getTotals(data.getTotalConfirmedCases(), data.getTotalEmployeeCases(
-        ), data.getTotalStudentCases(), data.getTotalVendorVisitorCases(), data.getTotalPerCapita()),
+        ), data.getTotalStudentCases(), data.getTotalVendorVisitorCases(), data.getTotalStudentCount()),
         dbc.Row([dbc.Col(dbc.Card(
             [dbc.CardHeader(html.B("Confirmed cases by Type")), ]), align='center')]),
         dcc.Graph(id="type_count", figure=plots.plotByType()),
@@ -121,15 +121,15 @@ def getTotals(total, employee, student, vendor, per_capita, margin="5px"):
                 ], color=getColorForType("Employee"))),
             dbc.Col(
                 dbc.Card([
+                    dbc.CardHeader(html.B("Vendor/Visitor")),
+                    dbc.CardBody(html.B(vendor))
+                ], color=getColorForType("Vendor/Visitor"))),
+            dbc.Col(
+                dbc.Card([
                     dbc.CardHeader(html.B("Student (%)")),
                     dbc.CardBody(html.B("%d (%.2f%%)" %
                                  (student, student/per_capita*100)))
-                ], color=getColorForType("Student"))),
-            dbc.Col(
-                dbc.Card([
-                    dbc.CardHeader(html.B("Vendor/Visitor")),
-                    dbc.CardBody(html.B(vendor))
-                ], color=getColorForType("Vendor/Visitor")))
+                ], color=getColorForType("Student")))
         ])], style={'margin': margin})
 
 
@@ -182,21 +182,20 @@ def updateSchools(dataset, schools=[]):
 
         ret = []
         for school in schools:
+            level = data.getLevelForSchool(school)
             ret.extend([
-                dbc.Row([
-                    dbc.Col(
-                        dbc.Card([
-                            dbc.CardHeader(html.B(school)),
-                            dbc.CardBody([
-                                getTotals(
-                                    *data.getTotalsForSchool(school), "5px 50px 5px"),
-                                dcc.Graph(
-                                    id="type_count", figure=plots.plotBySchool(school)),
-                                dcc.Graph(
-                                    figure=plots.plotDistributionsForSchool(school))
-                            ])
-                        ]))
-                ])
+                dbc.Row([dbc.Col(dbc.Card([dbc.CardHeader(html.B(school))]))]),
+                getTotals(
+                    *data.getTotalsForSchool(school), "5px 50px 5px"),
+                html.Br(),
+                html.P("Confirmed cases by type", style={'margin': '5px'}),
+                dcc.Graph(
+                    id="type_count", figure=plots.plotBySchool(school)),
+                html.Br(),
+                html.P(
+                    "Distribution vs %s and all schools" % (level), style={'margin': '5px'}),
+                dcc.Graph(
+                    figure=plots.plotDistributionsForSchool(school))
             ])
 
         return ret

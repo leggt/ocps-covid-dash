@@ -31,13 +31,13 @@ def getColorForLevel(level):
 class Plots:
     legend = dict(
         orientation="h",
-        yanchor="bottom",
-        y=1.02,
+        yanchor="top",
+        y=-.05,
         xanchor="right",
         x=1
     )
 
-    margin = {'l': 5, 'r': 5, 'b': 100, 't': 50}
+    margin = {'l': 5, 'r': 5, 'b': 50, 't': 50}
 
     def __init__(self, data):
         self.data = data
@@ -191,30 +191,66 @@ class Plots:
         return fig
 
     def plotDistributionsForSchool(self, school):
-        level = self.data.getLevelForSchool(school)
-        confirmed = self.data.getTotalsForSchool(school)[0]
-
-        all = self.df
-        all = all[['level', 'location', 'confirmed']].groupby(
-            ['level', 'location']).sum().reset_index()
-
-        by_level = all[all.level == level]
+        all = self.data.getDfTotalsByLocation()
+        school_level = self.data.getLevelForSchool(school)
+        by_level = all[all.level == school_level]
+        by_school = all[all.location == school]
+        confirmed = by_school.confirmed.sum()
+        confirmed_pc = by_school.confirmed_pc.sum()
 
         fig = go.Figure()
-        all_level = 'All'
-        fig.add_box(x=all['confirmed'], name=all_level,
-                    marker={'color': getColorForLevel(all_level), 'opacity': .5}, legendgroup=all_level, hovertext=all.location)
-        fig.add_scatter(x=[confirmed], y=[all_level], marker={'symbol': 'star', 'size': 8}, showlegend=False,
-                        legendgroup=all_level, hovertemplate='%{hovertext}<br>Confirmed:%{x}<extra></extra>', hovertext=[school])
+        for t in [('All', all), (school_level, by_level)]:
+            level = t[0]
+            df = t[1]
+            fig.add_box(x=df.confirmed, name=level,
+                        marker={'color': getColorForLevel(level), 'opacity': .5}, legendgroup=level, hovertext=df.location)
+            fig.add_scatter(x=[confirmed], y=[level], marker={'symbol': 'star', 'size': 8}, showlegend=False,
+                            legendgroup=level, hovertemplate='%{hovertext}<br>Confirmed:%{x}<extra></extra>', hovertext=[school])
 
-        fig.add_box(x=by_level['confirmed'], name=level,
-                    marker={'color': getColorForLevel(level), 'opacity': .5}, legendgroup=level)
-        fig.add_scatter(x=[confirmed], y=[level], marker={'symbol': 'star', 'size': 8}, legendgroup=level,
-                        showlegend=False, hovertemplate='%{hovertext}<br>Confirmed:%{x}<extra></extra>', hovertext=[school])
+        for t in [('All', all), (school_level, by_level)]:
+            level = t[0]
+            df = t[1]
+            fig.add_box(x=df.confirmed_pc, name=level, visible=False,
+                        marker={'color': getColorForLevel(level), 'opacity': .5}, legendgroup=level, hovertext=df.location)
+            fig.add_scatter(x=[confirmed_pc], y=[level], marker={'symbol': 'star', 'size': 8}, showlegend=False, visible=False,
+                            legendgroup=level, hovertemplate='%{hovertext}<br>Confirmed:%{x}<extra></extra>', hovertext=[school])
+
+        fig.update_layout(
+            updatemenus=[
+                dict(
+                    buttons=list([
+                        dict(
+                            args=[
+                                {"visible": [True, True, True, True,
+                                             False, False, False, False]},
+                                {'xaxis.tickformat': '.0'}
+                            ],
+                            label="By count",
+                            method="update"
+                        ),
+                        dict(
+                            args=[
+                                {"visible": [False, False, False,
+                                             False, True, True, True, True]},
+                                {'xaxis.tickformat': '.2%'}
+                            ],
+                            label="Per capita",
+                            method="update"
+                        ),
+                    ]),
+                    direction="down",
+                    showactive=True,
+                    xanchor="left",
+                    x=0,
+                    yanchor="bottom",
+                    y=1.02
+                ),
+            ])
 
         fig.update_yaxes(visible=False)
         fig.update_layout(
-            legend=self.legend, title="%s vs distribution of other %s schools and all schools" % (school, level), margin=self.margin)
+            legend=self.legend, margin=self.margin)
+
         return fig
 
     def plotDistributionByLevel(self, level):
@@ -243,15 +279,53 @@ class Plots:
         return fig
 
     def plotDistribution(self):
-        all = self.df.groupby(by=['level', 'location'])[
-            'confirmed'].sum().reset_index().copy()
-        # why can't I do this before grouping?
-        all['level'] = pd.Categorical(
-            all['level'], ['Elementary', 'Middle', 'High'])
-        all = all.sort_values(by='level')
+        all = self.data.getDfTotalsByLocation()
 
-        fig = px.box(all, x='confirmed', y='level', color='level', points='all',
-                     hover_name='location',  color_discrete_map=color_map_by_level)
+        fig = go.Figure()
+        for level in ['High', 'Middle', 'Elementary']:
+            df = all[all.level == level]
+            fig.add_box(x=df['confirmed'], name=level,
+                        marker={'color': getColorForLevel(level), 'opacity': .5}, legendgroup=level, hovertext=df.location)
+
+        for level in ['High', 'Middle', 'Elementary']:
+            df = all[all.level == level]
+            fig.add_box(x=df['confirmed_pc'], name=level, visible=False,
+                        marker={'color': getColorForLevel(level), 'opacity': .5}, legendgroup=level, hovertext=df.location)
+
+        fig.update_layout(
+            updatemenus=[
+                dict(
+                    buttons=list([
+                        dict(
+                            args=[
+                                {"visible": [True, True, True,
+                                             False, False, False]},
+                                {'xaxis.tickformat': '.0'}
+                            ],
+                            label="By count",
+                            method="update"
+                        ),
+                        dict(
+                            args=[
+                                {"visible": [False, False,
+                                             False, True, True, True]},
+                                {'xaxis.tickformat': '.2%'}
+                            ],
+                            label="Per capita",
+                            method="update"
+                        ),
+                    ]),
+                    direction="down",
+                    showactive=True,
+                    xanchor="left",
+                    x=0,
+                    yanchor="bottom",
+                    y=1.02
+                ),
+            ]
+        )
+
+        fig.update_yaxes(visible=False)
         fig.update_layout(legend=self.legend, xaxis_title="",
                           yaxis_title="", margin=self.margin)
         return fig

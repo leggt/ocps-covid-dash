@@ -102,20 +102,28 @@ class Data:
     def getLocationsList(self):
         return self.df.location.sort_values().unique().tolist()
 
-    def getSchoolPerCapita(self, school):
+    def getSchoolStudentCount(self, school):
         latest = self.getLatestDate()
         demo_df = self.demo_df.set_index('date').sort_index()
         return demo_df[demo_df.location == school].asof(pd.to_datetime(latest)).total
 
-    def getTotalPerCapita(self):
+    def getTotalStudentCount(self):
         latest = pd.to_datetime(self.getLatestDate())
         demo_df = self.demo_df
         latest = demo_df[demo_df.date <= latest].date.max()
         return demo_df[demo_df.date == latest].total.sum()
 
+    def getTotalStudentCountByLevel(self, level):
+        df = self.df
+        demo_df = self.demo_df
+        latest = pd.to_datetime(self.getLatestDate())
+        schools = df[df.level == level].location
+        latest = demo_df[demo_df.date <= latest].date.max()
+        return demo_df[(demo_df.date == latest) & (demo_df.location.isin(schools))].total.sum()
+
     def getTotalsForSchool(self, school):
         df = self.df[self.df.location == school]
-        pc = self.getSchoolPerCapita(school)
+        pc = self.getSchoolStudentCount(school)
         tc = self.getTotalConfirmedCases(df)
         te = self.getTotalEmployeeCases(df)
         ts = self.getTotalStudentCases(df)
@@ -123,6 +131,20 @@ class Data:
         return (
             tc, te, ts, tv, pc
         )
+
+    def getDfTotalsByLocation(self):
+        df = self.df
+        demo_df = self.demo_df
+        latest = pd.to_datetime(self.getLatestDate())
+        latest = demo_df[demo_df.date <= latest].date.max()
+        demo_df = demo_df[(demo_df.date == latest)][['location', 'total']]
+
+        df = df.groupby(['level', 'location'])['confirmed'].sum().reset_index()
+
+        df = df.merge(demo_df, on='location')
+        df['confirmed_pc'] = df.apply(
+            lambda row: row.confirmed/row.total, axis=1)
+        return df
 
     def getTotalConfirmedCases(self, df=None):
         if df is None:
