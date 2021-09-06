@@ -37,6 +37,8 @@ class Plots:
         x=1
     )
 
+    margin = {'l': 5, 'r': 5, 'b': 100, 't': 50}
+
     def __init__(self, data):
         self.data = data
         self.df = self.getMapData()
@@ -105,7 +107,7 @@ class Plots:
                         visible=False, marker={'color': color_map[typ]})
 
         fig.update_layout(legend=self.legend, xaxis_title="",
-                          yaxis_title="", title=title)
+                          yaxis_title="", margin=self.margin)
         fig.layout.barmode = 'stack'
 
         new_vis = [True for x in range(new_count)]
@@ -152,7 +154,7 @@ class Plots:
                     direction="down",
                     showactive=True,
                     xanchor="left",
-                    x=.002,
+                    x=0,
                     yanchor="bottom",
                     y=1.02
                 ),
@@ -183,7 +185,7 @@ class Plots:
         fig = px.scatter_mapbox(df, lat="lat", lon="long",
                                 color_discrete_map=color_map_by_level, zoom=9, color='level', size='confirmed', size_max=50, opacity=.75, hover_name='location', hover_data=['level', 'confirmed'])
 
-        fig.update_layout(mapbox_style="open-street-map")
+        fig.update_layout(mapbox_style="open-street-map", margin=self.margin)
         fig.update_layout(autosize=True, legend=self.legend,
                           xaxis_title="", yaxis_title="")
         return fig
@@ -212,7 +214,7 @@ class Plots:
 
         fig.update_yaxes(visible=False)
         fig.update_layout(
-            legend=self.legend, title="%s vs distribution of other %s schools and all schools" % (school, level))
+            legend=self.legend, title="%s vs distribution of other %s schools and all schools" % (school, level), margin=self.margin)
         return fig
 
     def plotDistributionByLevel(self, level):
@@ -228,8 +230,7 @@ class Plots:
                             )
         fig.add_box(x=all['confirmed'], name=level, row=1, col=1,
                     marker={'color': getColorForLevel(level), 'opacity': .5}, showlegend=False)
-        title = "Distribution of confirmed cases in %s schools" % (level)
-        fig.update_layout(barmode='stack', title=title)
+        fig.update_layout(barmode='stack', margin=self.margin)
         fig.update_yaxes(visible=False)
         fig.update_xaxes(visible=True, row=1, col=1,
                          showticklabels=True)
@@ -250,6 +251,7 @@ class Plots:
         all = all.sort_values(by='level')
 
         fig = px.box(all, x='confirmed', y='level', color='level', points='all',
-                     hover_name='location',  color_discrete_map=color_map_by_level, title="Distribution of cases by Level")
-        fig.update_layout(legend=self.legend, xaxis_title="", yaxis_title="")
+                     hover_name='location',  color_discrete_map=color_map_by_level)
+        fig.update_layout(legend=self.legend, xaxis_title="",
+                          yaxis_title="", margin=self.margin)
         return fig

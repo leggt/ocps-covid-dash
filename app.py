@@ -77,29 +77,28 @@ def showGraphs(dataset):
     children = [
         getTotals(data.getTotalConfirmedCases(), data.getTotalEmployeeCases(
         ), data.getTotalStudentCases(), data.getTotalVendorVisitorCases(), data.getTotalPerCapita()),
-        dbc.Row([
-            dbc.Col(
-                dbc.Card([
-                    dbc.CardHeader(html.B("Confirmed cases by count")),
-                    dbc.CardBody([
-                        dcc.Graph(id="type_count", figure=plots.plotByType()),
-                        dcc.Graph(id="level_count", figure=plots.plotByLevel())
+        dbc.Row([dbc.Col(dbc.Card(
+            [dbc.CardHeader(html.B("Confirmed cases by Type")), ]), align='center')]),
+        dcc.Graph(id="type_count", figure=plots.plotByType()),
+        dbc.Row([dbc.Col(dbc.Card(
+            [dbc.CardHeader(html.B("Confirmed cases by Level")), ]), align='center')]),
+        dcc.Graph(id="level_count", figure=plots.plotByLevel()),
 
-                    ])]), align='center')]),
-        dbc.Row([
-            dbc.Col(
-                dbc.Card([
-                    dbc.CardHeader(
-                        html.B("Distribution of cases")),
-                    dbc.CardBody([dcc.Graph(id="box_plot", figure=plots.plotDistribution()),
-                                  dcc.Graph(
-                                      figure=plots.plotDistributionByLevel('Elementary')),
-                                  dcc.Graph(
-                                      figure=plots.plotDistributionByLevel('Middle')),
-                                  dcc.Graph(
-                                      figure=plots.plotDistributionByLevel('High'))
-                                  ])]), align='center')
-        ]),
+        dbc.Row([dbc.Col(dbc.Card(
+            [dbc.CardHeader(html.B("Distribution of cases by Level")), ]), align='center')]),
+        dcc.Graph(id="box_plot", figure=plots.plotDistribution()),
+        dbc.Row([dbc.Col(dbc.Card([dbc.CardHeader(html.B(
+            "Distribution of confirmed cases in Elementary schools")), ]), align='center')]),
+        dcc.Graph(
+            figure=plots.plotDistributionByLevel('Elementary')),
+        dbc.Row([dbc.Col(dbc.Card([dbc.CardHeader(html.B(
+            "Distribution of confirmed cases in Middle schools")), ]), align='center')]),
+        dcc.Graph(
+            figure=plots.plotDistributionByLevel('Middle')),
+        dbc.Row([dbc.Col(dbc.Card([dbc.CardHeader(html.B(
+            "Distribution of confirmed cases in High schools")), ]), align='center')]),
+        dcc.Graph(
+            figure=plots.plotDistributionByLevel('High')),
 
 
     ]
