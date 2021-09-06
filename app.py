@@ -30,22 +30,8 @@ if len(sys.argv) > 1 and sys.argv[1] == 'debug':
     cache.clear()
 
 navbar = dbc.NavbarSimple(
-    children=[
-        dbc.NavItem(dbc.NavLink("About", href="/about")),
-        dbc.NavItem(dbc.NavLink("Totals", href="/all")),
-        dbc.NavItem(dbc.NavLink("By School", href="/school")),
-        dbc.NavItem(dbc.NavLink("Map", href="/map")),
-        dbc.DropdownMenu(
-            label="2021-2022",
-            children=[
-                dbc.DropdownMenuItem("2021-2022", id="y2021"),
-                dbc.DropdownMenuItem("2020-2021", id="y2020"),
-            ],
-            id='year_dd'
-        )
-    ],
     brand="(Unofficial) OCPS Covid Dashboard",
-    brand_href="#",
+    brand_href="/",
     color="dark",
     dark=True,
 )
@@ -56,6 +42,22 @@ app.layout = html.Div(
         dcc.Store(id="year_store", data={'year': '2021'}),
         dcc.Location(id='url', refresh=False),
         navbar,
+        dbc.Nav([
+            dbc.NavItem(dbc.NavLink("About", href="/about", active='exact')),
+            dbc.NavItem(dbc.NavLink("Totals", href="/", active='exact')),
+            dbc.NavItem(dbc.NavLink(
+                "By School", href="/school", active='exact')),
+            dbc.NavItem(dbc.NavLink("Map", href="/map", active='exact')),
+            dbc.DropdownMenu(
+                label="2021-2022",
+                children=[
+                    dbc.DropdownMenuItem("2021-2022", id="y2021"),
+                    dbc.DropdownMenuItem("2020-2021", id="y2020"),
+                ],
+                id='year_dd'
+            )
+        ], pills=True, fill=True),
+        html.Hr(),
         html.Div(id="main_content", children=[])
     ]
 )
