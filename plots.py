@@ -186,7 +186,16 @@ class Plots:
                                 color_discrete_map=color_map_by_level, zoom=9, color='level', size='confirmed', size_max=50, opacity=.75, hover_name='location', hover_data=['level', 'confirmed'])
 
         fig.update_layout(mapbox_style="open-street-map", margin=self.margin)
-        fig.update_layout(autosize=True, legend=self.legend,
+
+        legend = dict(
+            orientation="h",
+            yanchor="bottom",
+            y=1.02,
+            xanchor="right",
+            x=1
+        )
+
+        fig.update_layout(autosize=True, legend=legend,
                           xaxis_title="", yaxis_title="")
         return fig
 
