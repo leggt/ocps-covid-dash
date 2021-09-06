@@ -29,6 +29,9 @@ if len(sys.argv) > 1 and sys.argv[1] == 'debug':
     print("clearing cache")
     cache.clear()
 
+config = {'modeBarButtonsToRemove': ["autoScale2d", "autoscale", "editInChartStudio", "editinchartstudio", "hoverCompareCartesian", "hovercompare", "lasso", "lasso2d", "orbitRotation", "orbitrotation", "pan", "pan2d", "pan3d", "reset", "resetCameraDefault3d", "resetCameraLastSave3d", "resetGeo", "resetSankeyGroup", "resetScale2d", "resetViewMapbox", "resetViews", "resetcameradefault",
+                                     "resetcameralastsave", "resetsankeygroup", "resetscale", "resetview", "resetviews", "select", "select2d", "sendDataToCloud", "senddatatocloud", "tableRotation", "tablerotation", "toImage", "toggleHover", "toggleSpikelines", "togglehover", "togglespikelines", "toimage", "zoom", "zoom2d", "zoom3d", "zoomIn2d", "zoomInGeo", "zoomInMapbox", "zoomOut2d", "zoomOutGeo", "zoomOutMapbox", "zoomin", "zoomout"]}
+
 navbar = dbc.NavbarSimple(
     brand="(Unofficial) OCPS Covid Dashboard",
     brand_href="/",
@@ -79,26 +82,26 @@ def showGraphs(dataset):
         ), data.getTotalStudentCases(), data.getTotalVendorVisitorCases(), data.getTotalStudentCount()),
         dbc.Row([dbc.Col(dbc.Card(
             [dbc.CardHeader(html.B("Confirmed cases by Type")), ]), align='center')]),
-        dcc.Graph(id="type_count", figure=plots.plotByType()),
+        dcc.Graph(id="type_count", figure=plots.plotByType(), config=config),
         dbc.Row([dbc.Col(dbc.Card(
             [dbc.CardHeader(html.B("Confirmed cases by Level")), ]), align='center')]),
-        dcc.Graph(id="level_count", figure=plots.plotByLevel()),
+        dcc.Graph(id="level_count", figure=plots.plotByLevel(), config=config),
 
         dbc.Row([dbc.Col(dbc.Card(
             [dbc.CardHeader(html.B("Distribution of cases by Level")), ]), align='center')]),
-        dcc.Graph(id="box_plot", figure=plots.plotDistribution()),
+        dcc.Graph(id="box_plot", figure=plots.plotDistribution(), config=config),
         dbc.Row([dbc.Col(dbc.Card([dbc.CardHeader(html.B(
             "Distribution of confirmed cases in Elementary schools")), ]), align='center')]),
         dcc.Graph(
-            figure=plots.plotDistributionByLevel('Elementary')),
+            figure=plots.plotDistributionByLevel('Elementary'), config=config),
         dbc.Row([dbc.Col(dbc.Card([dbc.CardHeader(html.B(
             "Distribution of confirmed cases in Middle schools")), ]), align='center')]),
         dcc.Graph(
-            figure=plots.plotDistributionByLevel('Middle')),
+            figure=plots.plotDistributionByLevel('Middle'), config=config),
         dbc.Row([dbc.Col(dbc.Card([dbc.CardHeader(html.B(
             "Distribution of confirmed cases in High schools")), ]), align='center')]),
         dcc.Graph(
-            figure=plots.plotDistributionByLevel('High')),
+            figure=plots.plotDistributionByLevel('High'), config=config),
 
 
     ]
@@ -137,7 +140,8 @@ def getTotals(total, employee, student, vendor, per_capita, margin="5px"):
 def showMap(dataset):
     _, plots = getDataPlots(dataset)
     return [
-        dcc.Graph(id="map", figure=plots.plotMap(), style={'height': '100vh'})
+        dcc.Graph(id="map", figure=plots.plotMap(), style={
+                  'height': '100vh'}, config=config)
     ]
 
 
@@ -190,12 +194,12 @@ def updateSchools(dataset, schools=[]):
                 html.Br(),
                 html.P("Confirmed cases by type", style={'margin': '5px'}),
                 dcc.Graph(
-                    id="type_count", figure=plots.plotBySchool(school)),
+                    id="type_count", figure=plots.plotBySchool(school), config=config),
                 html.Br(),
                 html.P(
                     "Distribution vs %s and all schools" % (level), style={'margin': '5px'}),
                 dcc.Graph(
-                    figure=plots.plotDistributionsForSchool(school))
+                    figure=plots.plotDistributionsForSchool(school), config=config)
             ])
 
         return ret
