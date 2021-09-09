@@ -57,6 +57,8 @@ class Plots:
         if demo_df is None:
             demo_df = self.data.demo_df
 
+        fill_dates = pd.date_range(plot_df.date.min(), plot_df.date.max())
+
         new_count = 0
         # New cases
         for typ in color_order:
@@ -78,7 +80,6 @@ class Plots:
             if df.empty:
                 continue
             cum_count = cum_count+1
-            fill_dates = pd.date_range(df.date.min(), df.date.max())
             df = df[['date', 'confirmed']].groupby(
                 ['date']).confirmed.sum()
             df = df.reindex(fill_dates, fill_value=0).reset_index()
@@ -96,7 +97,6 @@ class Plots:
             if df.empty:
                 continue
             cum_pc_count = cum_pc_count+1
-            fill_dates = pd.date_range(df.date.min(), df.date.max())
             df = df[['date', 'confirmed']].groupby(
                 ['date']).confirmed.sum()
             df = df.reindex(fill_dates, fill_value=0).reset_index()
