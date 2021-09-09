@@ -78,8 +78,11 @@ class Plots:
             if df.empty:
                 continue
             cum_count = cum_count+1
+            fill_dates = pd.date_range(df.date.min(), df.date.max())
             df = df[['date', 'confirmed']].groupby(
-                ['date']).confirmed.sum().reset_index()
+                ['date']).confirmed.sum()
+            df = df.reindex(fill_dates, fill_value=0).reset_index()
+            df.rename(columns={'index': 'date'}, inplace=True)
             df.confirmed = df.confirmed.cumsum()
 
             fig.add_bar(x=df['date'], y=df.confirmed, name=typ,
@@ -93,8 +96,11 @@ class Plots:
             if df.empty:
                 continue
             cum_pc_count = cum_pc_count+1
+            fill_dates = pd.date_range(df.date.min(), df.date.max())
             df = df[['date', 'confirmed']].groupby(
-                ['date']).confirmed.sum().reset_index()
+                ['date']).confirmed.sum()
+            df = df.reindex(fill_dates, fill_value=0).reset_index()
+            df.rename(columns={'index': 'date'}, inplace=True)
 
             demo_df = demo_df[['date', 'total']].groupby(
                 ['date']).total.sum().reset_index()
